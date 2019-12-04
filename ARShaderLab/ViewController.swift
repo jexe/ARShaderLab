@@ -13,6 +13,8 @@ import ARKit
 class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
+
+    var sphereNode: SCNNode!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,10 +26,39 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        let scene = SCNScene()//named: "art.scnassets/ship.scn")!
         
         // Set the scene to the view
         sceneView.scene = scene
+
+        let sphere = SCNSphere(radius: 0.05)
+
+        guard
+            let surfaceShaderURL = Bundle.main.url(forResource: "surface", withExtension: "shader"),
+            let surfaceModifier = try? String(contentsOf: surfaceShaderURL),
+            let geometryShaderURL = Bundle.main.url(forResource: "geom", withExtension: "shader"),
+            let geometryModifier = try? String(contentsOf: geometryShaderURL)
+
+
+            else { fatalError("Can't load shader from bundle.") }
+
+        sphere.shaderModifiers = [.surface: surfaceModifier,
+                                  .geometry: geometryModifier]
+
+        sphere.setValue(sphere.radius, forKey: "sphereRadius")
+
+        sphere.firstMaterial?.diffuse.contents = UIImage(named: "skull")
+        sphere.firstMaterial?.lightingModel = .physicallyBased
+        sphere.firstMaterial?.diffuse.wrapS = SCNWrapMode.repeat
+        sphere.firstMaterial?.diffuse.wrapT = SCNWrapMode.repeat
+        sphere.firstMaterial?.specular.contents = 1.0
+
+        sphereNode = SCNNode(geometry: sphere)
+        sphereNode.position = SCNVector3(x: 0, y: 0, z: -0.3)
+
+        scene.rootNode.addChildNode(sphereNode)
+        sceneView.isPlaying = true
+
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -38,6 +69,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
         // Run the view's session
         sceneView.session.run(configuration)
+
+        sphereNode.geometry?.firstMaterial?.reflective.contents = sceneView.scene.background
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -49,15 +82,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
-    }
-*/
-    
+
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
         
